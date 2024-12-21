@@ -3,60 +3,39 @@
 namespace App\Repositories;
 
 use App\Interfaces\AuthRepositoryInterface;
-use App\Models\Student;
 use App\Models\User;
-use Illuminate\Support\Facades\DB;
-use RealRashid\SweetAlert\Facades\Alert as Swal;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthRepository implements AuthRepositoryInterface
 {
     public function register(array $data)
     {
-        DB::beginTransaction();
+        $user = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+        ]);
 
-        $user = User::create($data);
-
-        if ($data['role'] == 'student') {
-            $user->assignRole('student');
-
-            $username = strstr($data['email'], '@', true) . Student::count();
-
-            $user->student()->create([
-                'name' => $data['name'],
-                'username' => $username,
-            ]);
-        }
-
-        DB::commit();
-
+        $user->assignRole('user');
         return $user;
     }
 
-    public function login(array $data)
+    public function login(array $credentials)
     {
-        $email = $data['email'];
-        $password = $data['password'];
+        $user = User::where('email', $credentials['email'])->first();
 
-        if (auth()->attempt(['email' => $email, 'password' => $password])) {
-            if (auth()->user()->hasRole('admin')) {
-                return redirect()->route('admin.dashboard');
-            }
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
         }
 
-        Swal::toast('Email atau password salah', 'error')->timerProgressBar();
-
-        return redirect()->back();
+        return $user->createToken('auth_token')->plainTextToken;
     }
 
     public function logout()
     {
-        auth()->logout();
-
-        return redirect()->route('login');
-    }
-
-    public function user(array $data)
-    {
-        return auth()->user();
+        auth()->user()->tokens()->delete();
     }
 }

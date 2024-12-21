@@ -93,9 +93,7 @@ class ApiGeneratorCommand extends Command
                 public function rules()
                 {
                     return [
-                        'code' => 'required|string|max:255|unique:__nameSnakeCasePlurals__,code',
 
-                        'is_active' => 'nullable|boolean',
                     ];
                 }
 
@@ -103,7 +101,7 @@ class ApiGeneratorCommand extends Command
                 {
                     if ($this->has('is_active')) {
                         $this->merge([
-                            'is_active' => $this->is_active !== null ? filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN) : null,
+
                         ]);
                     }
                 }
@@ -141,9 +139,7 @@ class ApiGeneratorCommand extends Command
                 public function rules()
                 {
                     return [
-                        'code' => 'required|string|max:255|unique:__nameSnakeCasePlurals__,code,'.$this->route('__nameSnakeCase__'),
 
-                        'is_active' => 'required|boolean',
                     ];
                 }
 
@@ -151,7 +147,7 @@ class ApiGeneratorCommand extends Command
                 {
                     if ($this->has('is_active')) {
                         $this->merge([
-                            'is_active' => $this->is_active !== null ? filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN) : null,
+
                         ]);
                     }
                 }
@@ -415,10 +411,6 @@ class ApiGeneratorCommand extends Command
                     int $rowsPerPage
                 );
 
-                public function getAllActive(
-                string $includeId = null
-                );
-
                 public function getById(
                     string $id,
                     bool $withTrashed = false
@@ -486,19 +478,6 @@ class ApiGeneratorCommand extends Command
                     return $query->paginate($rowsPerPage);
                 }
 
-                public function getAllActive(string $includeId = null)
-                {
-                    $query = __namePascalCase__::where('is_active', true);
-
-                    if ($includeId) {
-                        $query->orWhere(function ($subQuery) use ($includeId) {
-                            $subQuery->withTrashed()->where('id', '=', $includeId);
-                        });
-                    }
-
-                    return $query->get();
-                }
-
                 public function getById(string $id, bool $withTrashed = false)
                 {
                     $query = __namePascalCase__::where('id', '=', $id);
@@ -508,13 +487,6 @@ class ApiGeneratorCommand extends Command
                     }
 
                     return $query->first();
-                }
-
-                public function isAvailable(string $id): bool
-                {
-                    return __namePascalCase__::where('id', '=', $id)
-                        ->where('is_active', true)
-                        ->exists();
                 }
 
                 public function create(array $data)
